@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Card Parents - Scanner</title>
+
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      text-align: center;
+    }
+
+    h2 {
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: #555;
+    }
+
+    #qr-reader {
+      width: 100%;
+      max-width: 500px;
+      margin: 20px auto;
+      background: white;
+      border-radius: 15px;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    #hasil {
+      max-width: 500px;
+      margin: 20px auto;
+      padding: 15px;
+      background: white;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>📷 Scanner QR</h2>
+
+  <p>Arahkan kamera ke QR Code</p>
+
+  <div id="qr-reader"></div>
+
+  <div id="hasil">
+    Menunggu kamera...
+  </div>
+
+  <script>
+
+    let scanner = null;
+
+    function mulaiScanner() {
+
+      scanner = new Html5Qrcode("qr-reader");
+
+      const config = {
+        fps: 10,
+        qrbox: {
+          width: 250,
+          height: 250
+        }
+      };
+
+      scanner.start(
+        {
+          facingMode: "environment"
+        },
+        config,
+
+        function(decodedText) {
+
+          document.getElementById("hasil").innerText =
+            "✅ QR TERBACA: " + decodedText;
+
+          scanner.stop().catch(function(error) {
+            console.log(error);
+          });
+
+        },
+
+        function(errorMessage) {
+          // Abaikan error pencarian QR
+        }
+
+      ).then(function() {
+
+        document.getElementById("hasil").innerText =
+          "📷 Kamera aktif. Arahkan ke QR Code.";
+
+      }).catch(function(error) {
+
+        console.error(error);
+
+        document.getElementById("hasil").innerText =
+          "❌ Kamera gagal dibuka: " + error;
+
+      });
+    }
+
+    mulaiScanner();
+
+  </script>
+
+</body>
+</html>
