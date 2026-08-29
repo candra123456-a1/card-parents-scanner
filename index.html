@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html>
 <head>
   <meta charset="UTF-8">
@@ -55,6 +56,7 @@
       color: #666;
     }
   </style>
+
 </head>
 
 <body>
@@ -71,7 +73,6 @@
 
   <div id="status"></div>
 
-
   <script>
 
     /* =====================================================
@@ -79,7 +80,7 @@
     ===================================================== */
 
     const APPS_SCRIPT_URL =
-      'https://script.google.com/macros/s/AKfycbyQVzrR6XUXwNq1vTODEhAoZQ5Jvq5jifjLIX5mnRgzxXiciZT9Eyk1YyCq7NDm9xep/exec';
+      'https://script.google.com/macros/s/AKfycbxWThtfTMJx3d6GGevDP6CVPDq4NE8eFR2n0dcktokcv_Kw8cBibfFvROAag_f9oM_Z/exec';
 
 
     /* =====================================================
@@ -178,15 +179,13 @@
           hasil.innerText =
             "⏳ QR terbaca. Memproses...";
 
-
           status.innerText =
-            "Mengirim data ke server...";
+            "Menghubungi server...";
 
 
           try {
 
             await scanner.stop();
-
 
           } catch (error) {
 
@@ -199,90 +198,104 @@
 
 
           /* =================================================
-             KIRIM KE APPS SCRIPT
+             QR YANG DIBACA
           ================================================= */
 
-          try {
-
-            const response =
-              await fetch(
-                APPS_SCRIPT_URL,
-                {
-                  method: 'POST',
-
-                  headers: {
-                    'Content-Type':
-                      'text/plain;charset=utf-8'
-                  },
-
-                  body: JSON.stringify({
-
-                    idOrtu:
-                      idOrtu,
-
-                    idQR:
-                      decodedText
-
-                  })
-
-                }
-              );
+          let idQR = decodedText.trim();
 
 
-            const result =
-              await response.json();
+          /*
+             QR Gerbang kita berisi URL.
+             Untuk sementara kita ubah menjadi QR01.
 
+             Nanti kalau format QR diubah,
+             bagian ini bisa disesuaikan.
+          */
 
-            console.log(
-              'HASIL DARI APPS SCRIPT:',
-              result
-            );
+          if (
+            idQR.indexOf(
+              'script.google.com'
+            ) !== -1
+          ) {
 
-
-            if (
-              result &&
-              result.success
-            ) {
-
-              hasil.innerText =
-                "✅ " +
-                result.message;
-
-              status.innerText =
-                "Absensi berhasil dicatat.";
-
-            } else {
-
-              hasil.innerText =
-                "❌ " +
-                (
-                  result &&
-                  result.message
-                    ? result.message
-                    : 'Scan gagal.'
-                );
-
-              status.innerText =
-                "Data tidak berhasil diproses.";
-
-            }
-
-
-          } catch (error) {
-
-            console.error(
-              'ERROR KIRIM SCAN:',
-              error
-            );
-
-
-            hasil.innerText =
-              "❌ Gagal menghubungi server.";
-
-            status.innerText =
-              error.message;
+            idQR = 'QR01';
 
           }
+
+
+          /* =================================================
+             BENTUK URL REQUEST
+          ================================================= */
+
+          const requestUrl =
+            APPS_SCRIPT_URL +
+            '?action=scan' +
+            '&idOrtu=' +
+            encodeURIComponent(idOrtu) +
+            '&idQR=' +
+            encodeURIComponent(idQR);
+
+
+          console.log(
+            'URL REQUEST:',
+            requestUrl
+          );
+
+
+          /* =================================================
+             BUAT IFRAME TERSEMBUNYI
+             UNTUK MENGIRIM REQUEST GET
+          ================================================= */
+
+          const iframe =
+            document.createElement(
+              'iframe'
+            );
+
+          iframe.style.display =
+            'none';
+
+          iframe.src =
+            requestUrl;
+
+          document.body.appendChild(
+            iframe
+          );
+
+
+          /*
+             Karena GitHub dan Apps Script
+             berbeda domain, browser tidak
+             mengizinkan kita membaca isi
+             response iframe.
+
+             Jadi kita tampilkan status
+             pengiriman terlebih dahulu.
+          */
+
+          hasil.innerText =
+            "✅ QR terbaca.";
+
+          status.innerText =
+            "Data absensi sedang dikirim ke server...";
+
+
+          /*
+             Beri waktu server memproses.
+          */
+
+          setTimeout(
+            function() {
+
+              hasil.innerText =
+                "📋 Permintaan absensi sudah dikirim.";
+
+              status.innerText =
+                "Silakan cek LOG ABSENSI.";
+
+            },
+            2500
+          );
 
         },
 
@@ -311,7 +324,6 @@
           'KAMERA ERROR:',
           error
         );
-
 
         hasil.innerText =
           "❌ Kamera gagal dibuka.";
