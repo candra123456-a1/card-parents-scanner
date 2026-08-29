@@ -73,6 +73,7 @@
 
   <div id="status"></div>
 
+
   <script>
 
     /* =====================================================
@@ -80,7 +81,7 @@
     ===================================================== */
 
     const APPS_SCRIPT_URL =
-      'https://script.google.com/macros/s/AKfycbxWThtfTMJx3d6GGevDP6CVPDq4NE8eFR2n0dcktokcv_Kw8cBibfFvROAag_f9oM_Z/exec';
+      'https://script.google.com/macros/s/AKfycbyQVzrR6XUXwNq1vTODEhAoZQ5Jvq5jifjLIX5mnRgzxXiciZT9Eyk1YyCq7NDm9xep/exec';
 
 
     /* =====================================================
@@ -201,15 +202,13 @@
              QR YANG DIBACA
           ================================================= */
 
-          let idQR = decodedText.trim();
+          let idQR =
+            decodedText.trim();
 
 
           /*
-             QR Gerbang kita berisi URL.
-             Untuk sementara kita ubah menjadi QR01.
-
-             Nanti kalau format QR diubah,
-             bagian ini bisa disesuaikan.
+             QR Gerbang berisi URL.
+             Untuk sementara dianggap sebagai QR01.
           */
 
           if (
@@ -243,59 +242,62 @@
 
 
           /* =================================================
-             BUAT IFRAME TERSEMBUNYI
-             UNTUK MENGIRIM REQUEST GET
+             KIRIM REQUEST KE APPS SCRIPT
           ================================================= */
 
-          const iframe =
-            document.createElement(
-              'iframe'
+          fetch(
+            requestUrl,
+            {
+              method: 'GET',
+              mode: 'no-cors'
+            }
+          )
+
+          .then(function() {
+
+            console.log(
+              'REQUEST ABSENSI TERKIRIM KE APPS SCRIPT:',
+              requestUrl
             );
 
-          iframe.style.display =
-            'none';
 
-          iframe.src =
-            requestUrl;
+            hasil.innerText =
+              "✅ QR terbaca.";
 
-          document.body.appendChild(
-            iframe
-          );
+            status.innerText =
+              "Data absensi sedang dikirim ke server...";
 
 
-          /*
-             Karena GitHub dan Apps Script
-             berbeda domain, browser tidak
-             mengizinkan kita membaca isi
-             response iframe.
+            setTimeout(
+              function() {
 
-             Jadi kita tampilkan status
-             pengiriman terlebih dahulu.
-          */
+                hasil.innerText =
+                  "📋 Permintaan absensi sudah dikirim.";
 
-          hasil.innerText =
-            "✅ QR terbaca.";
+                status.innerText =
+                  "Silakan cek LOG ABSENSI.";
 
-          status.innerText =
-            "Data absensi sedang dikirim ke server...";
+              },
+              2500
+            );
+
+          })
+
+          .catch(function(error) {
+
+            console.error(
+              'GAGAL KIRIM KE APPS SCRIPT:',
+              error
+            );
 
 
-          /*
-             Beri waktu server memproses.
-          */
+            hasil.innerText =
+              "❌ Gagal mengirim data absensi.";
 
-          setTimeout(
-            function() {
+            status.innerText =
+              "Gagal menghubungi server.";
 
-              hasil.innerText =
-                "📋 Permintaan absensi sudah dikirim.";
-
-              status.innerText =
-                "Silakan cek LOG ABSENSI.";
-
-            },
-            2500
-          );
+          });
 
         },
 
