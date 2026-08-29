@@ -6,7 +6,10 @@
 
   <title>Card Parents - Scanner</title>
 
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <script
+    src="https://unpkg.com/html5-qrcode"
+    type="text/javascript">
+  </script>
 
   <style>
     body {
@@ -44,6 +47,13 @@
       font-size: 18px;
       font-weight: bold;
     }
+
+    #status {
+      max-width: 500px;
+      margin: 10px auto;
+      font-size: 14px;
+      color: #666;
+    }
   </style>
 </head>
 
@@ -59,57 +69,264 @@
     Menunggu kamera...
   </div>
 
+  <div id="status"></div>
+
+
   <script>
+
+    /* =====================================================
+       KONFIGURASI APPS SCRIPT
+    ===================================================== */
+
+    const APPS_SCRIPT_URL =
+      'https://script.google.com/macros/s/AKfycbyQVzrR6XUXwNq1vTODEhAoZQ5Jvq5jifjLIX5mnRgzxXiciZT9Eyk1YyCq7NDm9xep/exec';
+
+
+    /* =====================================================
+       AMBIL ID ORTU DARI URL
+    ===================================================== */
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const idOrtu =
+      String(
+        params.get('idOrtu') || ''
+      ).trim();
+
+
+    /* =====================================================
+       ELEMENT
+    ===================================================== */
+
+    const hasil =
+      document.getElementById('hasil');
+
+    const status =
+      document.getElementById('status');
+
+
+    /* =====================================================
+       CEK ID WALI
+    ===================================================== */
+
+    if (!idOrtu) {
+
+      hasil.innerText =
+        '⚠️ ID wali tidak ditemukan.';
+
+      status.innerText =
+        'Scanner harus dibuka dari aplikasi CARD PARENTS.';
+
+    }
+
+
+    /* =====================================================
+       SCANNER
+    ===================================================== */
 
     let scanner = null;
 
+    let sudahScan = false;
+
+
     function mulaiScanner() {
 
-      scanner = new Html5Qrcode("qr-reader");
+      if (!idOrtu) {
+        return;
+      }
+
+
+      scanner =
+        new Html5Qrcode(
+          "qr-reader"
+        );
+
 
       const config = {
+
         fps: 10,
+
         qrbox: {
           width: 250,
           height: 250
         }
+
       };
 
+
       scanner.start(
+
         {
           facingMode: "environment"
         },
+
         config,
 
-        function(decodedText) {
 
-          document.getElementById("hasil").innerText =
-            "✅ QR TERBACA: " + decodedText;
+        async function(decodedText) {
 
-          scanner.stop().catch(function(error) {
-            console.log(error);
-          });
+          if (sudahScan) {
+            return;
+          }
+
+          sudahScan = true;
+
+
+          hasil.innerText =
+            "⏳ QR terbaca. Memproses...";
+
+
+          status.innerText =
+            "Mengirim data ke server...";
+
+
+          try {
+
+            await scanner.stop();
+
+
+          } catch (error) {
+
+            console.log(
+              'Scanner stop:',
+              error
+            );
+
+          }
+
+
+          /* =================================================
+             KIRIM KE APPS SCRIPT
+          ================================================= */
+
+          try {
+
+            const response =
+              await fetch(
+                APPS_SCRIPT_URL,
+                {
+                  method: 'POST',
+
+                  headers: {
+                    'Content-Type':
+                      'text/plain;charset=utf-8'
+                  },
+
+                  body: JSON.stringify({
+
+                    idOrtu:
+                      idOrtu,
+
+                    idQR:
+                      decodedText
+
+                  })
+
+                }
+              );
+
+
+            const result =
+              await response.json();
+
+
+            console.log(
+              'HASIL DARI APPS SCRIPT:',
+              result
+            );
+
+
+            if (
+              result &&
+              result.success
+            ) {
+
+              hasil.innerText =
+                "✅ " +
+                result.message;
+
+              status.innerText =
+                "Absensi berhasil dicatat.";
+
+            } else {
+
+              hasil.innerText =
+                "❌ " +
+                (
+                  result &&
+                  result.message
+                    ? result.message
+                    : 'Scan gagal.'
+                );
+
+              status.innerText =
+                "Data tidak berhasil diproses.";
+
+            }
+
+
+          } catch (error) {
+
+            console.error(
+              'ERROR KIRIM SCAN:',
+              error
+            );
+
+
+            hasil.innerText =
+              "❌ Gagal menghubungi server.";
+
+            status.innerText =
+              error.message;
+
+          }
 
         },
 
+
         function(errorMessage) {
+
           // Abaikan error pencarian QR
+
         }
 
-      ).then(function() {
+      )
 
-        document.getElementById("hasil").innerText =
+      .then(function() {
+
+        hasil.innerText =
           "📷 Kamera aktif. Arahkan ke QR Code.";
 
-      }).catch(function(error) {
+        status.innerText =
+          "ID wali: " + idOrtu;
 
-        console.error(error);
+      })
 
-        document.getElementById("hasil").innerText =
-          "❌ Kamera gagal dibuka: " + error;
+      .catch(function(error) {
+
+        console.error(
+          'KAMERA ERROR:',
+          error
+        );
+
+
+        hasil.innerText =
+          "❌ Kamera gagal dibuka.";
+
+        status.innerText =
+          String(error);
 
       });
+
     }
+
+
+    /* =====================================================
+       MULAI
+    ===================================================== */
 
     mulaiScanner();
 
